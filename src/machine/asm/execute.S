@@ -20,8 +20,8 @@
 /* rax is used both in Microsoft x64 and System V AMD64 ABI */
 #define ARG_RETd %eax
 
-#define MACHINE %rsi
-#define TRACE %rbx
+#define MACHINE %rbx
+#define TRACE %r12
 
 /*
  * INST_PC contains the current address of decoded Instruction in
@@ -43,6 +43,7 @@
 #define RS2s RD_RS2s
 #define IMMEDIATE %rcx
 #define TEMP1 %rdi
+#define TEMP2 %rsi
 
 #define RDd_RS2sd %eax
 #define RDd RDd_RS2sd
@@ -56,6 +57,8 @@
 #define IMMEDIATEd %ecx
 #define TEMP1b %dil
 #define TEMP1d %edi
+#define TEMP2b %sil
+#define TEMP2d %esi
 
 #define PC_ADDRESS \
   CKB_VM_ASM_ASM_CORE_MACHINE_OFFSET_PC(MACHINE)
@@ -95,7 +98,12 @@
 #define MOV_RDX_TO_RS1
 #define MOV_RS2r_TO_RDX movq RS2r, %rdx
 #define MOV_RDX_TO_RS2r movq %rdx, RS2r
+#define MOV_RCX_TO_IMMEDIATE
 
+/*
+ * Note this utility macro checks 2 pages at most, you need to manually ensure
+ * the length you pass fit in 2 pages.
+ */
 #define CHECK_WRITE_PERMISSION(address_reg, temp_reg1, temp_reg2, temp_reg2d, length) \
   movq address_reg, temp_reg1; \
   shr $CKB_VM_ASM_RISCV_PAGE_SHIFTS, temp_reg1; \
@@ -108,7 +116,7 @@
   addq $1, temp_reg1; \
   shl $CKB_VM_ASM_RISCV_PAGE_SHIFTS, temp_reg1; \
   movq address_reg, temp_reg2; \
-  addq $length, temp_reg2; \
+  addq length, temp_reg2; \
   cmp temp_reg1, temp_reg2; \
   jbe 1f; \
   shr $CKB_VM_ASM_RISCV_PAGE_SHIFTS, temp_reg1; \
@@ -150,13 +158,22 @@
 
 #define DECODE_I \
   movzbl %cl, RS1d; \
-  sar $8, %rcx
+  sar $8, %rcx; \
+  MOV_RCX_TO_IMMEDIATE
 
 #define DECODE_S \
   movzbl %cl, RS1d; \
   sar $8, %rcx
+  MOV_RCX_TO_IMMEDIATE
 
-#define DECODE_U
+#define DECODE_U \
+  MOV_RCX_TO_IMMEDIATE
+
+#define DECODE_F1 \
+  movzbl %cl, RS1d; \
+  movzbl %ch, RS2rd; \
+  sar $16, %rcx; \
+  MOV_RCX_TO_IMMEDIATE
 
 #ifdef __APPLE__
 .globl _ckb_vm_x64_execute
@@ -171,6 +188,7 @@ ckb_vm_x64_execute:
 #endif
   push %rbp
   push %rbx
+  push %r12
   mov ARG1, MACHINE
 .p2align 3
 .CKB_VM_ASM_LABEL_OP_CUSTOM_TRACE_END:
@@ -746,7 +764,7 @@ ckb_vm_x64_execute:
   DECODE_S
   movq REGISTER_ADDRESS(RS1), RS1
   addq IMMEDIATE, RS1
-  CHECK_WRITE_PERMISSION(RS1, TEMP1, RS2r, RS2rd, 1)
+  CHECK_WRITE_PERMISSION(RS1, TEMP1, RS2r, RS2rd, $1)
   movq REGISTER_ADDRESS(RS2s), RS2s
   mov RS2sb, CKB_VM_ASM_ASM_CORE_MACHINE_OFFSET_MEMORY(MACHINE, RS1)
   NEXT_INST
@@ -756,7 +774,7 @@ ckb_vm_x64_execute:
   DECODE_S
   movq REGISTER_ADDRESS(RS1), RS1
   addq IMMEDIATE, RS1
-  CHECK_WRITE_PERMISSION(RS1, TEMP1, RS2r, RS2rd, 8)
+  CHECK_WRITE_PERMISSION(RS1, TEMP1, RS2r, RS2rd, $8)
   movq REGISTER_ADDRESS(RS2s), RS2s
   movq RS2s, CKB_VM_ASM_ASM_CORE_MACHINE_OFFSET_MEMORY(MACHINE, RS1)
   NEXT_INST
@@ -765,7 +783,7 @@ ckb_vm_x64_execute:
   DECODE_S
   movq REGISTER_ADDRESS(RS1), RS1
   addq IMMEDIATE, RS1
-  CHECK_WRITE_PERMISSION(RS1, TEMP1, RS2r, RS2rd, 2)
+  CHECK_WRITE_PERMISSION(RS1, TEMP1, RS2r, RS2rd, $2)
   movq REGISTER_ADDRESS(RS2s), RS2s
   mov RS2sh, CKB_VM_ASM_ASM_CORE_MACHINE_OFFSET_MEMORY(MACHINE, RS1)
   NEXT_INST
@@ -938,7 +956,7 @@ ckb_vm_x64_execute:
   DECODE_S
   movq REGISTER_ADDRESS(RS1), RS1
   addq IMMEDIATE, RS1
-  CHECK_WRITE_PERMISSION(RS1, TEMP1, RS2r, RS2rd, 4)
+  CHECK_WRITE_PERMISSION(RS1, TEMP1, RS2r, RS2rd, $4)
   movq REGISTER_ADDRESS(RS2s), RS2s
   mov RS2sd, CKB_VM_ASM_ASM_CORE_MACHINE_OFFSET_MEMORY(MACHINE, RS1)
   NEXT_INST
@@ -1066,7 +1084,7 @@ ckb_vm_x64_execute:
   DECODE_S
   movq SP_ADDRESS, RS1
   addq IMMEDIATE, RS1
-  CHECK_WRITE_PERMISSION(RS1, TEMP1, RS2r, RS2rd, 8)
+  CHECK_WRITE_PERMISSION(RS1, TEMP1, RS2r, RS2rd, $8)
   movq REGISTER_ADDRESS(RS2s), RS2s
   movq RS2s, CKB_VM_ASM_ASM_CORE_MACHINE_OFFSET_MEMORY(MACHINE, RS1)
   NEXT_INST
@@ -1075,9 +1093,37 @@ ckb_vm_x64_execute:
   DECODE_S
   movq SP_ADDRESS, RS1
   addq IMMEDIATE, RS1
-  CHECK_WRITE_PERMISSION(RS1, TEMP1, RS2r, RS2rd, 4)
+  CHECK_WRITE_PERMISSION(RS1, TEMP1, RS2r, RS2rd, $4)
   movq REGISTER_ADDRESS(RS2s), RS2s
   mov RS2sd, CKB_VM_ASM_ASM_CORE_MACHINE_OFFSET_MEMORY(MACHINE, RS1)
+  NEXT_INST
+.p2align 3
+.CKB_VM_ASM_LABEL_OP_CUSTOM_FUSION_COPY_FROM_SP:
+  DECODE_F1
+  shl $3, IMMEDIATE
+  addq REGISTER_ADDRESS(RD), IMMEDIATE
+  shl $3, RS1
+  shl $3, RS2r
+  addq SP_ADDRESS, RS2r
+  /*
+   * Optimizer only works with trace of 32 items, so at most we are
+   * updating 16 * 8 = 128 bytes, which is well within 2 pages.
+   */
+  CHECK_WRITE_PERMISSION(IMMEDIATE, TEMP1, TEMP2, TEMP2d, RS1)
+  cmp $CKB_VM_ASM_RISCV_MAX_MEMORY, RS2r
+  jae .exit_out_of_bound
+  addq RS2r, RS1
+  cmp $CKB_VM_ASM_RISCV_MAX_MEMORY, RS1
+  jae .exit_out_of_bound
+1:
+  cmp RS1, RS2r
+  jae 2f
+  movq CKB_VM_ASM_ASM_CORE_MACHINE_OFFSET_MEMORY(MACHINE, RS2r), TEMP1
+  movq TEMP1, CKB_VM_ASM_ASM_CORE_MACHINE_OFFSET_MEMORY(MACHINE, IMMEDIATE)
+  addq $8, RS2r
+  addq $8, IMMEDIATE
+  jmp 1b
+2:
   NEXT_INST
 .p2align 3
 .exit_out_of_bound:
@@ -1097,6 +1143,7 @@ ckb_vm_x64_execute:
   mov $CKB_VM_ASM_RET_DECODE_TRACE, ARG_RETd
   jmp .exit
 .exit:
+  pop %r12
   pop %rbx
   pop %rbp
 #ifdef IS_WINDOWS

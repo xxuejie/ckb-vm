@@ -16,9 +16,9 @@ pub use ckb_vm_definitions::instructions::{
 };
 pub use execute::execute;
 
-type RegisterIndex = usize;
-type Immediate = i32;
-type UImmediate = u32;
+pub type RegisterIndex = usize;
+pub type Immediate = i32;
+pub type UImmediate = u32;
 
 #[inline(always)]
 pub fn extract_opcode(i: Instruction) -> InstructionOpcode {
@@ -194,6 +194,61 @@ impl Utype {
 
     pub fn immediate_s(self) -> Immediate {
         ((self.0 as i64) >> 32) as Immediate
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct F1type(pub Instruction);
+
+impl F1type {
+    pub fn new(
+        op: InstructionOpcode,
+        rd: RegisterIndex,
+        rs1: RegisterIndex,
+        rs2: RegisterIndex,
+        immediate: UImmediate,
+    ) -> Self {
+        F1type(
+            u64::from(op as u8)
+                | (u64::from(rd as u8) << 8)
+                | (u64::from(rs1 as u8) << 32)
+                | (u64::from(rs2 as u8) << 40)
+                | (u64::from(immediate as u16) << 48),
+        )
+    }
+
+    pub fn new_s(
+        op: InstructionOpcode,
+        rd: RegisterIndex,
+        rs1: RegisterIndex,
+        rs2: RegisterIndex,
+        immediate: Immediate,
+    ) -> Self {
+        Self::new(op, rd, rs1, rs2, immediate as UImmediate)
+    }
+
+    pub fn op(self) -> InstructionOpcode {
+        self.0 as u8 as InstructionOpcode
+    }
+
+    pub fn rd(self) -> RegisterIndex {
+        (self.0 >> 8) as u8 as RegisterIndex
+    }
+
+    pub fn rs1(self) -> RegisterIndex {
+        (self.0 >> 32) as u8 as RegisterIndex
+    }
+
+    pub fn rs2(self) -> RegisterIndex {
+        (self.0 >> 40) as u8 as RegisterIndex
+    }
+
+    pub fn immediate(self) -> UImmediate {
+        self.immediate_s() as UImmediate
+    }
+
+    pub fn immediate_s(self) -> Immediate {
+        ((self.0 as i64) >> 48) as Immediate
     }
 }
 

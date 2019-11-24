@@ -8,6 +8,7 @@ use crate::{
         check_permission, fill_page_data, memset, round_page_down, round_page_up, FLAG_EXECUTABLE,
         FLAG_FREEZED, FLAG_WRITABLE,
     },
+    optimizer::optimize_instructions,
     CoreMachine, DefaultMachine, Error, Machine, Memory, SupportMachine, RISCV_MAX_MEMORY,
     RISCV_PAGES, RISCV_PAGESIZE,
 };
@@ -273,9 +274,10 @@ impl<'a> AsmMachine<'a> {
                 RET_DECODE_TRACE => {
                     let pc = *self.machine.pc();
                     let slot = calculate_slot(pc);
-                    let mut trace = Trace::default();
                     let mut current_pc = pc;
                     let mut i = 0;
+                    let mut cycles = 0;
+                    let mut instructions = Vec::with_capacity(TRACE_ITEM_LENGTH);
                     while i < TRACE_ITEM_LENGTH {
                         let mut instruction =
                             decoder.decode(self.machine.memory_mut(), current_pc)?;
@@ -285,33 +287,34 @@ impl<'a> AsmMachine<'a> {
                         // space of the instruction, so as to allow easy access of this data
                         // within assembly loops.
                         instruction |= u64::from((current_pc - pc) as u8) << 24;
-                        trace.instructions[i] = instruction;
-                        trace.cycles += self
+                        instructions.push(instruction);
+                        cycles += self
                             .machine
                             .instruction_cycle_func()
                             .as_ref()
                             .map(|f| f(instruction))
                             .unwrap_or(0);
-                        let opcode = extract_opcode(instruction);
-                        // Here we are calculating the absolute address used in direct threading
-                        // from label offsets.
-                        trace.thread[i] = unsafe {
-                            u64::from(*(ckb_vm_asm_labels as *const u32).offset(opcode as isize))
-                                + (ckb_vm_asm_labels as *const u32 as u64)
-                        };
                         i += 1;
                         if end_instruction {
                             break;
                         }
                     }
-                    trace.instructions[i] = blank_instruction(OP_CUSTOM_TRACE_END);
-                    trace.thread[i] = unsafe {
-                        u64::from(
-                            *(ckb_vm_asm_labels as *const u32).offset(OP_CUSTOM_TRACE_END as isize),
-                        ) + (ckb_vm_asm_labels as *const u32 as u64)
-                    };
+                    let instructions = optimize_instructions(&instructions, pc);
+                    debug_assert!(instructions.len() <= TRACE_ITEM_LENGTH);
+                    let mut trace = Trace::default();
+                    trace.cycles = cycles;
                     trace.address = pc;
                     trace.length = (current_pc - pc) as u8;
+                    trace.instructions[..instructions.len()].copy_from_slice(&instructions);
+                    trace.instructions[instructions.len()] = blank_instruction(OP_CUSTOM_TRACE_END);
+                    for i in 0..(instructions.len() + 1) {
+                        let instruction = trace.instructions[i];
+                        let opcode = extract_opcode(instruction);
+                        trace.thread[i] = unsafe {
+                            u64::from(*(ckb_vm_asm_labels as *const u32).offset(opcode as isize))
+                                + (ckb_vm_asm_labels as *const u32 as u64)
+                        };
+                    }
                     self.machine.inner_mut().traces[slot] = trace;
                 }
                 RET_ECALL => self.machine.ecall()?,
