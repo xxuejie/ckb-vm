@@ -32,7 +32,7 @@ struct AotValue {
 }
 
 extern "C" {
-    fn aot_new(npc: u32) -> *mut AotContext;
+    fn aot_new(npc: u32, version: u32) -> *mut AotContext;
     fn aot_finalize(c: *mut AotContext);
     fn aot_link(c: *mut AotContext, szp: *mut size_t) -> c_int;
     fn aot_encode(c: *mut AotContext, buffer: *mut c_void) -> c_int;
@@ -183,8 +183,8 @@ impl Drop for Emitter {
 }
 
 impl Emitter {
-    pub fn new(labels: usize) -> Result<Emitter, Error> {
-        let aot = unsafe { aot_new(labels as u32) };
+    pub fn new(labels: usize, version: u32) -> Result<Emitter, Error> {
+        let aot = unsafe { aot_new(labels as u32, version) };
         if aot.is_null() {
             Err(Error::Dynasm(-1))
         } else {

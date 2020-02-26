@@ -5,6 +5,7 @@ use super::super::{
     instructions::{
         ast::Value, execute, instruction_length, is_basic_block_end_instruction, Instruction,
     },
+    machine::VERSION1,
     CoreMachine, DefaultCoreMachine, Error, FlatMemory, InstructionCycleFunc, Machine, Memory,
     Register, SupportMachine, RISCV_MAX_MEMORY,
 };
@@ -396,7 +397,7 @@ impl AotCompilingMachine {
             version,
             registers: init_registers(),
             pc: Value::from_u64(0),
-            emitter: Emitter::new(labels.len())?,
+            emitter: Emitter::new(labels.len(), version)?,
             addresses_to_labels,
             memory: label_gathering_machine.memory,
             sections: label_gathering_machine.sections,
