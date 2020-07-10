@@ -6,6 +6,7 @@
 fn main() {
     use std::env;
 
+    let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap();
     let target_pointer_width = env::var("CARGO_CFG_TARGET_POINTER_WIDTH").unwrap();
     let target_family = env::var("CARGO_CFG_TARGET_FAMILY").unwrap_or_default();
     let is_windows = target_family == "windows";
@@ -64,9 +65,12 @@ fn main() {
                 .object(&compile_path)
                 .file("src/machine/aot/aot.x64.win.compiled.c");
         } else {
-            build
-                .file("src/machine/asm/execute.S")
-                .file("src/machine/aot/aot.x64.compiled.c");
+            match &target_arch[..] {
+                "x86_64" => build.file("src/machine/asm/execute.S"),
+                "aarch64" => build.file("src/machine/asm/execute_aarch64.S"),
+                _ => panic!("asm feature is only available for x86_64 and aarch64 architecture!"),
+            };
+            build.file("src/machine/aot/aot.x64.compiled.c");
         }
 
         build
