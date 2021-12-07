@@ -75,8 +75,8 @@ fn main() {
                 .file("src/machine/asm/execute_x64.S")
                 .file("src/machine/aot/aot.x64.compiled.c");
         } else {
-            build.file("src/machine/asm/execute_aarch64.S");
-            // TODO: AOT
+            build.file("src/machine/asm/execute_aarch64.S")
+                .file("src/machine/aot/aot.aarch64.compiled.c");
         }
 
         build

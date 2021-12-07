@@ -55,8 +55,8 @@ ci-miri:
 	cargo miri setup
 	MIRIFLAGS="-Zmiri-disable-isolation" cargo miri test --all --features=miri-ci
 
-ci-generated: src/machine/aot/aot.x64.compiled.c src/machine/aot/aot.x64.win.compiled.c update-cdefinitions
-	git diff --exit-code src/machine/aot/aot.x64.compiled.c src/machine/aot/aot.x64.win.compiled.c src/machine/asm/cdefinitions_generated.h
+ci-generated: src/machine/aot/aot.x64.compiled.c src/machine/aot/aot.x64.win.compiled.c src/machine/aot/aot.aarch64.compiled.c update-cdefinitions
+	git diff --exit-code src/machine/aot/aot.x64.compiled.c src/machine/aot/aot.x64.win.compiled.c src/machine/aot/aot.aarch64.compiled.c src/machine/asm/cdefinitions_generated.h
 
 # For counting lines of code
 stats:
@@ -88,10 +88,13 @@ src/machine/aot/aot.x64.compiled.c: src/machine/aot/aot.x64.c .deps/luajit/src/h
 src/machine/aot/aot.x64.win.compiled.c: src/machine/aot/aot.x64.c .deps/luajit/src/host/minilua
 	.deps/luajit/src/host/minilua .deps/luajit/dynasm/dynasm.lua -D WIN -o $@ $<
 
+src/machine/aot/aot.aarch64.compiled.c: src/machine/aot/aot.aarch64.c .deps/luajit/src/host/minilua
+	.deps/luajit/src/host/minilua .deps/luajit/dynasm/dynasm.lua -o $@ $<
+
 .deps/luajit/src/host/minilua:
 	rm -rf .deps/luajit && mkdir -p .deps && \
 		git clone https://github.com/LuaJIT/LuaJIT .deps/luajit && \
-		cd .deps/luajit && git checkout 0f8a340c8c71fb8f5b8ae7c3ae94bfe81af8f8e8 && \
+		cd .deps/luajit && git checkout f3c856915b4ce7ccd24341e8ac73e8a9fd934171 && \
 		make
 
 .PHONY: test clippy fmt fuzz

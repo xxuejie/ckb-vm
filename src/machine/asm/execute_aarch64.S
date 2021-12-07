@@ -23,8 +23,9 @@
 #define RD x16
 #define RS1 x17
 #define RS1w w17
-#define RS2 x18
-#define RS2w w18
+/* https://github.com/LuaJIT/LuaJIT/blob/f3c856915b4ce7ccd24341e8ac73e8a9fd934171/src/vm_arm64.dasc#L21 */
+#define RS2 x24
+#define RS2w w24
 #define RS3 x19
 #define RS3w w19
 #define IMMEDIATE x20
@@ -40,10 +41,10 @@
   stp x11, x12, [sp, 32]; \
   stp x13, x14, [sp, 48]; \
   stp x15, x16, [sp, 64]; \
-  stp x17, x18, [sp, 80]
+  stp x17, x24, [sp, 80]
 
 #define POSTCALL \
-  ldp x17, x18, [sp, 80]; \
+  ldp x17, x24, [sp, 80]; \
   ldp x15, x16, [sp, 64]; \
   ldp x13, x14, [sp, 48]; \
   ldp x11, x12, [sp, 32]; \
@@ -230,9 +231,10 @@ _ckb_vm_x64_execute:
 .globl ckb_vm_x64_execute
 ckb_vm_x64_execute:
 #endif
-  stp x19, x20, [sp, -48]!
+  stp x19, x20, [sp, -64]!
   stp x21, x22, [sp, 16]
-  stp x23, x30, [sp, 32]
+  stp x23, x24, [sp, 32]
+  stp x25, x30, [sp, 48]
   add REGISTER_BASE, MACHINE, CKB_VM_ASM_ASM_CORE_MACHINE_OFFSET_REGISTERS
   mov ZERO_VALUE, 0
 
@@ -1626,7 +1628,8 @@ ckb_vm_x64_execute:
   mov x0, CKB_VM_ASM_RET_SLOWPATH
   b .exit
 .exit:
-  ldp x23, x30, [sp, 32]
+  ldp x25, x30, [sp, 48]
+  ldp x23, x24, [sp, 32]
   ldp x21, x22, [sp, 16]
-  ldp x19, x20, [sp], 48
+  ldp x19, x20, [sp], 64
   ret

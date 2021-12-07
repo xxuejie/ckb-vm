@@ -1,7 +1,7 @@
 /*
 ** This file has been pre-processed with DynASM.
 ** https://luajit.org/dynasm.html
-** DynASM version 1.4.0, DynASM x64 version 1.4.0
+** DynASM version 1.5.0, DynASM x64 version 1.5.0
 ** DO NOT EDIT! The original file is in "src/machine/aot/aot.x64.c".
 */
 
@@ -24,7 +24,7 @@
 #define ERROR_INVALID_VALUE 0xFFFFFF02
 
 //|.arch x64
-#if DASM_VERSION != 10400
+#if DASM_VERSION != 10500
 #error "Version mismatch between DynASM and included encoding engine"
 #endif
 #line 19 "src/machine/aot/aot.x64.c"

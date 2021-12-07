@@ -544,10 +544,12 @@ impl AotCompilingMachine {
         self.emitter.emit(&Write::Pc {
             value: Value::Imm(pc | ADDRESS_WRITE_ONLY_FLAG),
         })?;
+        println!("Writes: {:?}", initial_writes);
         for write in initial_writes {
             self.emitter.emit(&write)?;
         }
         let mut last_writes = self.take_and_clear_writes();
+        println!("Last writes: {:?}", last_writes);
         if let Some(value) = self.next_pc_write.take() {
             last_writes.push(Write::Pc {
                 value: self.optimize_pc_value(value)?,
