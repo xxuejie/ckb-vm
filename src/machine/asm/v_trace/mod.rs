@@ -27,7 +27,7 @@ use ckb_vm_definitions::{
     ISA_MOP,
 };
 use eint::{Eint, E256, E512, E8};
-use std::collections::HashMap;
+use lru::LruCache;
 use std::mem::transmute;
 
 pub const VTRACE_MAX_LENGTH: usize = 32;
@@ -55,7 +55,7 @@ type CM<'a> = DefaultMachine<'a, Box<AsmCoreMachine>>;
 pub struct VTraceAsmMachine<'a> {
     pub machine: CM<'a>,
     pub aot_code: Option<&'a AotCode>,
-    pub v_traces: HashMap<u64, VTrace<CM<'a>>>,
+    pub v_traces: LruCache<u64, VTrace<CM<'a>>>,
 }
 
 impl<'a> VTraceAsmMachine<'a> {
@@ -63,7 +63,7 @@ impl<'a> VTraceAsmMachine<'a> {
         let mut r = Self {
             machine,
             aot_code,
-            v_traces: HashMap::default(),
+            v_traces: LruCache::new(32),
         };
         // Default to illegal configuration
         r.machine.set_vl(0, 0, 0, u64::MAX);
@@ -150,7 +150,7 @@ impl<'a> VTraceAsmMachine<'a> {
 
                     if trace.slowpath != 0 && self.v_traces.get(&pc).is_none() {
                         if let Some(v_trace) = Self::try_build_v_trace(&trace) {
-                            self.v_traces.insert(pc, v_trace);
+                            self.v_traces.put(pc, v_trace);
                         }
                     }
                     self.machine.inner_mut().traces[slot] = trace;
