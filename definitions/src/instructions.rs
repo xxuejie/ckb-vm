@@ -164,9 +164,10 @@ pub const OP_FAR_JUMP_REL: InstructionOpcode = 0x7B;
 pub const OP_FAR_JUMP_ABS: InstructionOpcode = 0x7C;
 pub const OP_ADC: InstructionOpcode = 0x7D;
 pub const OP_SBB: InstructionOpcode = 0x7E;
-pub const OP_CUSTOM_LOAD_UIMM: InstructionOpcode = 0x7F;
-pub const OP_CUSTOM_LOAD_IMM: InstructionOpcode = 0x80;
-pub const OP_CUSTOM_TRACE_END: InstructionOpcode = 0x81;
+pub const OP_ADCS: InstructionOpcode = 0x7F;
+pub const OP_CUSTOM_LOAD_UIMM: InstructionOpcode = 0x80;
+pub const OP_CUSTOM_LOAD_IMM: InstructionOpcode = 0x81;
+pub const OP_CUSTOM_TRACE_END: InstructionOpcode = 0x82;
 
 pub const MINIMAL_LEVEL1_OPCODE: InstructionOpcode = OP_UNLOADED;
 pub const MAXIMUM_LEVEL1_OPCODE: InstructionOpcode = OP_CUSTOM_TRACE_END;
@@ -302,6 +303,7 @@ pub const INSTRUCTION_OPCODE_NAMES_LEVEL1: [&str; MAXIMUM_LEVEL1_OPCODE as usize
     "FAR_JUMP_ABS",
     "ADC",
     "SBB",
+    "ADCS",
     "CUSTOM_LOAD_UIMM",
     "CUSTOM_LOAD_IMM",
     "CUSTOM_TRACE_END",

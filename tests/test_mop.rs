@@ -112,7 +112,7 @@ pub fn test_mop_secp256k1() {
     let ret = machine.run();
     assert!(ret.is_ok());
     assert_eq!(ret.unwrap(), 0);
-    assert_eq!(machine.machine.cycles(), 611871);
+    assert_eq!(machine.machine.cycles(), 576619);
 
     #[cfg(has_asm)]
     {
@@ -121,7 +121,7 @@ pub fn test_mop_secp256k1() {
         let ret_asm = machine_asm.run();
         assert!(ret_asm.is_ok());
         assert_eq!(ret_asm.unwrap(), 0);
-        assert_eq!(machine.machine.cycles(), 611871);
+        assert_eq!(machine.machine.cycles(), 576619);
     }
 }
 
@@ -146,6 +146,30 @@ pub fn test_mop_adc() {
         assert!(ret_asm.is_ok());
         assert_eq!(ret_asm.unwrap(), 0);
         assert_eq!(machine.machine.cycles(), 61);
+    }
+}
+
+#[test]
+pub fn test_mop_adcs() {
+    let mut machine = machine_build::int_v1_imcb("tests/programs/mop_adcs");
+    let ret = machine.run();
+    assert!(ret.is_ok());
+    assert_eq!(ret.unwrap(), 0);
+    assert_eq!(machine.machine.cycles(), 47);
+
+    let mut machine = machine_build::int_v1_mop("tests/programs/mop_adcs", vec![]);
+    let ret = machine.run();
+    assert!(ret.is_ok());
+    assert_eq!(ret.unwrap(), 0);
+    assert_eq!(machine.machine.cycles(), 42);
+
+    #[cfg(has_asm)]
+    {
+        let mut machine_asm = machine_build::asm_v1_mop("tests/programs/mop_adcs", vec![]);
+        let ret_asm = machine_asm.run();
+        assert!(ret_asm.is_ok());
+        assert_eq!(ret_asm.unwrap(), 0);
+        assert_eq!(machine.machine.cycles(), 42);
     }
 }
 
@@ -185,7 +209,7 @@ pub fn test_mop_random_adc_sbb() {
     let ret = machine.run();
     assert!(ret.is_ok());
     assert_eq!(ret.unwrap(), 0);
-    assert_eq!(machine.machine.cycles(), 6755);
+    assert_eq!(machine.machine.cycles(), 6598);
 
     #[cfg(has_asm)]
     {
@@ -194,7 +218,7 @@ pub fn test_mop_random_adc_sbb() {
         let ret_asm = machine_asm.run();
         assert!(ret_asm.is_ok());
         assert_eq!(ret_asm.unwrap(), 0);
-        assert_eq!(machine.machine.cycles(), 6755);
+        assert_eq!(machine.machine.cycles(), 6598);
     }
 }
 

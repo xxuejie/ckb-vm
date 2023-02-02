@@ -1977,6 +1977,16 @@ ckb_vm_x64_execute:
   WRITE_RD(%rcx)
   NEXT_INST
 .p2align 3
+.CKB_VM_ASM_LABEL_OP_ADCS:
+  DECODE_R4
+  xor TEMP1, TEMP1
+  movq REGISTER_ADDRESS(RS1), %rcx
+  addq REGISTER_ADDRESS(RS2r), %rcx
+  adc $0, TEMP1
+  WRITE_RD(%rcx)
+  WRITE_RS3(TEMP1)
+  NEXT_INST
+.p2align 3
 .CKB_VM_ASM_LABEL_OP_SBB:
   DECODE_R4
   xor TEMP1, TEMP1
