@@ -205,6 +205,7 @@ impl TryFrom<Instruction> for TaggedInstruction {
             insts::OP_ADC => Rtype(i).into(),
             insts::OP_SBB => R4type(i).into(),
             insts::OP_ADCS => R4type(i).into(),
+            insts::OP_SBBS => R4type(i).into(),
             insts::OP_CUSTOM_LOAD_UIMM => Utype(i).into(),
             insts::OP_CUSTOM_LOAD_IMM => Utype(i).into(),
             _ => return Err(Error::InvalidOp(op)),

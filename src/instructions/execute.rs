@@ -889,6 +889,15 @@ pub fn execute_instruction<Mac: Machine>(
             let r = rs2_value | rs3_value;
             update_register(machine, i.rs1(), r);
         }
+        insts::OP_SBBS => {
+            let i = R4type(inst);
+            let rs1_value = machine.registers()[i.rs1()].clone();
+            let rs2_value = machine.registers()[i.rs2()].clone();
+            let r = rs1_value.overflowing_sub(&rs2_value);
+            update_register(machine, i.rd(), r.clone());
+            let r = r.lt(&rs1_value);
+            update_register(machine, i.rs3(), r);
+        }
         insts::OP_CUSTOM_LOAD_UIMM => {
             let i = Utype(inst);
             update_register(machine, i.rd(), Mac::REG::from_u32(i.immediate_u()));

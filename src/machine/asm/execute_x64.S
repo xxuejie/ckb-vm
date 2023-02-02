@@ -2003,6 +2003,16 @@ ckb_vm_x64_execute:
   WRITE_RD(%rcx)
   NEXT_INST
 .p2align 3
+.CKB_VM_ASM_LABEL_OP_SBBS:
+  DECODE_R4
+  xor TEMP1, TEMP1
+  movq REGISTER_ADDRESS(RS1), %rcx
+  subq REGISTER_ADDRESS(RS2r), %rcx
+  adc $0, TEMP1
+  WRITE_RD(%rcx)
+  WRITE_RS3(TEMP1)
+  NEXT_INST
+.p2align 3
 .exit_out_of_bound:
   mov $CKB_VM_ASM_RET_OUT_OF_BOUND, ARG_RETd
   jmp .exit
