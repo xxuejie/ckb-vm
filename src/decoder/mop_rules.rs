@@ -2,7 +2,7 @@ use crate::{
     decoder::Decoder,
     instructions::{
         extract_opcode, instruction_length, set_instruction_length_n, Instruction, Itype, R4type,
-        Rtype, Utype,
+        R5type, Rtype, Utype,
     },
     memory::Memory,
     Error,
@@ -376,17 +376,144 @@ const RULES: &[Rule] = &[
         },
     ),
     (
-        // add a0, a1, a2
-        // sltu a3, a0, a1
+        // add r0, r1, r0
+        // sltu r2, r0, r1
+        // add r3, r2, r4
+        //
+        // r0 != r1
+        // r0 != r4
+        // r2 != r4
+        // r0 != x0
+        // r2 != x0
+        &[insts::OP_ADD, insts::OP_SLTU, insts::OP_ADD],
+        2,
+        |insts| {
+            let i0 = Rtype(insts[0]);
+            let i1 = Rtype(insts[1]);
+            let i2 = Rtype(insts[2]);
+
+            let r0 = i0.rd();
+            let r1 = i0.rs1();
+            let r2 = i1.rd();
+            let r3 = i2.rd();
+            let r4 = i2.rs2();
+
+            if i0.rd() == r0
+                && i0.rs1() == r1
+                && i0.rs2() == r0
+                && i1.rd() == r2
+                && i1.rs1() == r0
+                && i1.rs2() == r1
+                && i2.rd() == r3
+                && i2.rs1() == r2
+                && i2.rs2() == r4
+                && r0 != r1
+                && r0 != r4
+                && r2 != r4
+                && r0 != ZERO
+                && r2 != ZERO
+            {
+                Some(R5type::new(insts::OP_ADD3A, r0, r1, r2, r3, r4).0)
+            } else {
+                None
+            }
+        },
+    ),
+    (
+        // add r0, r1, r2
+        // sltu r1, r0, r1
+        // add r3, r1, r4
+        //
+        // r0 != r1
+        // r0 != r4
+        // r1 != r4
+        &[insts::OP_ADD, insts::OP_SLTU, insts::OP_ADD],
+        2,
+        |insts| {
+            let i0 = Rtype(insts[0]);
+            let i1 = Rtype(insts[1]);
+            let i2 = Rtype(insts[2]);
+
+            let r0 = i0.rd();
+            let r1 = i0.rs1();
+            let r2 = i0.rs2();
+            let r3 = i2.rd();
+            let r4 = i2.rs2();
+
+            if i0.rd() == r0
+                && i0.rs1() == r1
+                && i0.rs2() == r2
+                && i1.rd() == r1
+                && i1.rs1() == r0
+                && i1.rs2() == r1
+                && i2.rd() == r3
+                && i2.rs1() == r1
+                && i2.rs2() == r4
+                && r0 != r1
+                && r0 != r4
+                && r1 != r4
+                && r0 != ZERO
+                && r1 != ZERO
+            {
+                Some(R5type::new(insts::OP_ADD3B, r0, r1, r2, r3, r4).0)
+            } else {
+                None
+            }
+        },
+    ),
+    (
+        // add r0, r1, r2
+        // sltu r3, r0, r1
+        // add r3, r3, r4
+        // 
+        // r0 != r1
+        // r0 != r4
+        // r3 != r4
+        &[insts::OP_ADD, insts::OP_SLTU, insts::OP_ADD],
+        2,
+        |insts| {
+            let i0 = Rtype(insts[0]);
+            let i1 = Rtype(insts[1]);
+            let i2 = Rtype(insts[2]);
+
+            let r0 = i0.rd();
+            let r1 = i0.rs1();
+            let r2 = i0.rs2();
+            let r3 = i1.rd();
+            let r4 = i2.rs2();
+
+            if i0.rd() == r0
+                && i0.rs1() == r1
+                && i0.rs2() == r2
+                && i1.rd() == r3
+                && i1.rs1() == r0
+                && i1.rs2() == r1
+                && i2.rd() == r3
+                && i2.rs1() == r3
+                && i2.rs2() == r4
+                && r0 != r1
+                && r0 != r4
+                && r3 != r4
+                && r0 != ZERO
+                && r3 != ZERO
+            {
+                Some(R5type::new(insts::OP_ADD3C, r0, r1, r2, r3, r4).0)
+            } else {
+                None
+            }
+        }
+    ),
+    (
+        // add r0, r1, r2
+        // sltu r3, r0, r1
         //
         // or
         //
-        // add a0, a2, a1
-        // sltu a3, a0, a1
+        // add r0, r2, r1
+        // sltu r3, r0, r1
         //
-        // a0 != a1
-        // a0 cannot be x0
-        // a3 cannot be x0
+        // r0 != r1
+        // r0 != x0
         &[insts::OP_ADD, insts::OP_SLTU],
         2,
         |insts| {
@@ -397,58 +524,55 @@ const RULES: &[Rule] = &[
                 i0 = swap_operands(&i0);
             }
 
-            let a0 = i0.rd();
-            let a1 = i0.rs1();
-            let a2 = i0.rs2();
-            let a3 = i1.rd();
+            let r0 = i0.rd();
+            let r1 = i0.rs1();
+            let r2 = i0.rs2();
+            let r3 = i1.rd();
 
-            if i0.rd() == a0
-                && i0.rs1() == a1
-                && i0.rs2() == a2
-                && i1.rd() == a3
-                && i1.rs1() == a0
-                && i1.rs2() == a1
-                && a0 != a1
-                && a0 != ZERO
-                && a1 != ZERO
+            if i0.rd() == r0
+                && i0.rs1() == r1
+                && i0.rs2() == r2
+                && i1.rd() == r3
+                && i1.rs1() == r0
+                && i1.rs2() == r1
+                && r0 != r1
+                && r0 != ZERO
             {
-                Some(R4type::new(insts::OP_ADCS, a0, a1, a2, a3).0)
+                Some(R4type::new(insts::OP_ADCS, r0, r1, r2, r3).0)
             } else {
                 None
             }
         },
     ),
     (
-        // sub a0, a1, a2
-        // sltu a3, a1, a2
+        // sub r0, r1, r2
+        // sltu r3, r1, r2
         //
-        // a0 != a1
-        // a0 != a2
-        // a0 cannot be x0
-        // a3 cannot be x0
+        // r0 != r1
+        // r0 != r2
+        // r0 != x0
         &[insts::OP_SUB, insts::OP_SLTU],
         2,
         |insts| {
             let i0 = Rtype(insts[0]);
             let i1 = Rtype(insts[1]);
 
-            let a0 = i0.rd();
-            let a1 = i0.rs1();
-            let a2 = i0.rs2();
-            let a3 = i1.rd();
+            let r0 = i0.rd();
+            let r1 = i0.rs1();
+            let r2 = i0.rs2();
+            let r3 = i1.rd();
 
-            if i0.rd() == a0
-                && i0.rs1() == a1
-                && i0.rs2() == a2
-                && i1.rd() == a3
-                && i1.rs1() == a1
-                && i1.rs2() == a2
-                && a0 != a1
-                && a0 != a2
-                && a0 != ZERO
-                && a1 != ZERO
+            if i0.rd() == r0
+                && i0.rs1() == r1
+                && i0.rs2() == r2
+                && i1.rd() == r3
+                && i1.rs1() == r1
+                && i1.rs2() == r2
+                && r0 != r1
+                && r0 != r2
+                && r0 != ZERO
             {
-                Some(R4type::new(insts::OP_SBBS, a0, a1, a2, a3).0)
+                Some(R4type::new(insts::OP_SBBS, r0, r1, r2, r3).0)
             } else {
                 None
             }
