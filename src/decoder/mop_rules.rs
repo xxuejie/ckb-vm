@@ -465,7 +465,7 @@ const RULES: &[Rule] = &[
         // add r0, r1, r2
         // sltu r3, r0, r1
         // add r3, r3, r4
-        // 
+        //
         // r0 != r1
         // r0 != r4
         // r3 != r4
@@ -501,7 +501,7 @@ const RULES: &[Rule] = &[
             } else {
                 None
             }
-        }
+        },
     ),
     (
         // add r0, r1, r2
@@ -550,7 +550,6 @@ const RULES: &[Rule] = &[
         //
         // r0 != r1
         // r0 != r2
-        // r0 != x0
         &[insts::OP_SUB, insts::OP_SLTU],
         2,
         |insts| {
@@ -570,7 +569,6 @@ const RULES: &[Rule] = &[
                 && i1.rs2() == r2
                 && r0 != r1
                 && r0 != r2
-                && r0 != ZERO
             {
                 Some(R4type::new(insts::OP_SBBS, r0, r1, r2, r3).0)
             } else {
