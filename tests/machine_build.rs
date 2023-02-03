@@ -53,10 +53,15 @@ pub fn int_v1_imcb(
 
 #[cfg(has_asm)]
 pub fn asm_v1_mop(path: &str, args: Vec<Bytes>) -> AsmMachine {
+    asm_mop(path, args, VERSION1)
+}
+
+#[cfg(has_asm)]
+pub fn asm_mop(path: &str, args: Vec<Bytes>, version: u32) -> AsmMachine {
     let buffer: Bytes = std::fs::read(path).unwrap().into();
     let asm_core = AsmCoreMachine::new(
         ISA_IMC | ISA_B | ISA_MOP,
-        VERSION1,
+        version,
         u64::max_value(),
         RISCV_MAX_MEMORY,
     );
@@ -74,10 +79,18 @@ pub fn int_v1_mop(
     path: &str,
     args: Vec<Bytes>,
 ) -> TraceMachine<DefaultCoreMachine<u64, WXorXMemory<SparseMemory<u64>>>> {
+    int_mop(path, args, VERSION1)
+}
+
+pub fn int_mop(
+    path: &str,
+    args: Vec<Bytes>,
+    version: u32,
+) -> TraceMachine<DefaultCoreMachine<u64, WXorXMemory<SparseMemory<u64>>>> {
     let buffer: Bytes = std::fs::read(path).unwrap().into();
     let core_machine = DefaultCoreMachine::<u64, WXorXMemory<SparseMemory<u64>>>::new(
         ISA_IMC | ISA_B | ISA_MOP,
-        VERSION1,
+        version,
         u64::max_value(),
         RISCV_MAX_MEMORY,
     );
