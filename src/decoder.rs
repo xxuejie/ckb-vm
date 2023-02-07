@@ -13,6 +13,7 @@ pub struct Decoder {
     version: u32,
     // use a cache of instructions to avoid decoding the same instruction twice, pc is the key and the instruction is the value
     instructions_cache: [(u64, u64); INSTRUCTION_CACHE_SIZE],
+    decodes: usize,
 }
 
 impl Decoder {
@@ -22,6 +23,7 @@ impl Decoder {
             mop,
             version,
             instructions_cache: [(RISCV_MAX_MEMORY as u64, 0); INSTRUCTION_CACHE_SIZE],
+            decodes: 0,
         }
     }
 
@@ -86,6 +88,7 @@ impl Decoder {
     }
 
     pub fn decode_raw<M: Memory>(&mut self, memory: &mut M, pc: u64) -> Result<Instruction, Error> {
+        // self.decodes += 1;
         if pc as usize >= RISCV_MAX_MEMORY {
             return Err(Error::MemOutOfBound);
         }
@@ -158,3 +161,9 @@ pub fn build_decoder<R: Register>(isa: u8, version: u32) -> Decoder {
     }
     decoder
 }
+
+// impl Drop for Decoder {
+    // fn drop(&mut self) {
+        // println!("Decode raw: {}", self.decodes);
+    // }
+// }
