@@ -76,6 +76,9 @@ fn test_resume2_secp256k1_asm_2_interpreter_2_asm() {
     let snapshot1 = machine1.snapshot().unwrap();
     assert!(!snapshot1.pages_from_source.is_empty());
 
+    let encoded: Vec<u8> = bincode::serialize(&snapshot1).unwrap();
+    println!("Bincoded size 1 : {}, dirty pages: {}", encoded.len(), snapshot1.dirty_pages.len());
+
     let mut machine2 = MachineTy::Interpreter.build(data_source.clone(), version);
     machine2.resume(snapshot1).unwrap();
 
@@ -83,11 +86,14 @@ fn test_resume2_secp256k1_asm_2_interpreter_2_asm() {
     assert_eq!(machine1.full_registers(), machine2.full_registers());
     assert_eq!(machine1.full_memory(), machine2.full_memory());
 
-    machine2.set_max_cycles(100000 + 200000);
+    machine2.set_max_cycles(100000 + 400000);
     let result2 = machine2.run();
     assert_eq!(result2.unwrap_err(), Error::CyclesExceeded);
     let snapshot2 = machine2.snapshot().unwrap();
     assert!(!snapshot2.pages_from_source.is_empty());
+
+    let encoded: Vec<u8> = bincode::serialize(&snapshot2).unwrap();
+    println!("Bincoded size 2 : {}, dirty pages: {}", encoded.len(), snapshot2.dirty_pages.len());
 
     let mut machine3 = MachineTy::Asm.build(data_source, version);
     machine3.resume(snapshot2).unwrap();
@@ -96,7 +102,7 @@ fn test_resume2_secp256k1_asm_2_interpreter_2_asm() {
     assert_eq!(machine2.full_registers(), machine3.full_registers());
     assert_eq!(machine2.full_memory(), machine3.full_memory());
 
-    machine3.set_max_cycles(100000 + 200000 + 400000);
+    machine3.set_max_cycles(100000 + 400000 + 200000);
     let result3 = machine3.run();
     let cycles3 = machine3.cycles();
     assert_eq!(result3.unwrap(), 0);
