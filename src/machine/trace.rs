@@ -1,6 +1,7 @@
 use super::{
     super::{
         decoder::build_decoder,
+        elf::ProgramMetadata,
         instructions::{
             execute, instruction_length, is_basic_block_end_instruction, Instruction, Register,
         },
@@ -99,6 +100,16 @@ impl<Inner: SupportMachine> TraceMachine<Inner> {
 
     pub fn load_program(&mut self, program: &Bytes, args: &[Bytes]) -> Result<u64, Error> {
         self.machine.load_program(program, args)
+    }
+
+    pub fn load_program_with_metadata(
+        &mut self,
+        program: &Bytes,
+        metadata: &ProgramMetadata,
+        args: &[Bytes],
+    ) -> Result<u64, Error> {
+        self.machine
+            .load_program_with_metadata(program, metadata, args)
     }
 
     pub fn run(&mut self) -> Result<i8, Error> {
