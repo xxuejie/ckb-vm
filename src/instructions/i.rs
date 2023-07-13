@@ -2,10 +2,11 @@ use ckb_vm_definitions::instructions as insts;
 
 use super::utils::{
     btype_immediate, funct3, funct7, itype_immediate, jalr, jtype_immediate, lb, lbu, ld, lh, lhu,
-    lw, lwu, opcode, rd, rs1, rs2, stype_immediate, utype_immediate,
+    lw, lwu, nop_check, opcode, rd, rs1, rs2, stype_immediate, utype_immediate,
 };
 use super::{
-    blank_instruction, set_instruction_length_4, Instruction, Itype, Register, Rtype, Stype, Utype,
+    blank_instruction, mark_nop, set_instruction_length_4, Instruction, Itype, Register, Rtype,
+    Stype, Utype,
 };
 
 // The FENCE instruction is used to order device I/O and memory accesses
@@ -37,31 +38,17 @@ pub fn factory<R: Register>(instruction_bits: u32, version: u32) -> Option<Instr
         return None;
     }
     let rv64 = bit_length == 64;
+    let rd = rd(instruction_bits);
     let inst = (|| match opcode(instruction_bits) {
-        0b_0110111 => Some(
-            Utype::new_s(
-                insts::OP_LUI,
-                rd(instruction_bits),
-                utype_immediate(instruction_bits),
-            )
-            .0,
-        ),
-        0b_0010111 => Some(
-            Utype::new_s(
-                insts::OP_AUIPC,
-                rd(instruction_bits),
-                utype_immediate(instruction_bits),
-            )
-            .0,
-        ),
-        0b_1101111 => Some(
-            Utype::new_s(
-                insts::OP_JAL,
-                rd(instruction_bits),
-                jtype_immediate(instruction_bits),
-            )
-            .0,
-        ),
+        0b_0110111 => Some(nop_check(
+            Utype::new_s(insts::OP_LUI, rd, utype_immediate(instruction_bits)).0,
+            rd,
+        )),
+        0b_0010111 => Some(nop_check(
+            Utype::new_s(insts::OP_AUIPC, rd, utype_immediate(instruction_bits)).0,
+            rd,
+        )),
+        0b_1101111 => Some(Utype::new_s(insts::OP_JAL, rd, jtype_immediate(instruction_bits)).0),
         0b_1100111 => {
             let inst_opt = match funct3(instruction_bits) {
                 // I-type jump instructions
@@ -71,7 +58,7 @@ pub fn factory<R: Register>(instruction_bits: u32, version: u32) -> Option<Instr
             inst_opt.map(|inst| {
                 Itype::new_s(
                     inst,
-                    rd(instruction_bits),
+                    rd,
                     rs1(instruction_bits),
                     itype_immediate(instruction_bits),
                 )
@@ -93,7 +80,7 @@ pub fn factory<R: Register>(instruction_bits: u32, version: u32) -> Option<Instr
             inst_opt.map(|inst| {
                 Itype::new_s(
                     inst,
-                    rd(instruction_bits),
+                    rd,
                     rs1(instruction_bits),
                     itype_immediate(instruction_bits),
                 )
@@ -120,26 +107,32 @@ pub fn factory<R: Register>(instruction_bits: u32, version: u32) -> Option<Instr
                         _ => None,
                     };
                     return inst_opt.map(|inst| {
-                        Itype::new_s(
-                            inst,
-                            rd(instruction_bits),
-                            rs1(instruction_bits),
-                            itype_immediate(instruction_bits) & i32::from(R::SHIFT_MASK),
+                        nop_check(
+                            Itype::new_s(
+                                inst,
+                                rd,
+                                rs1(instruction_bits),
+                                itype_immediate(instruction_bits) & i32::from(R::SHIFT_MASK),
+                            )
+                            .0,
+                            rd,
                         )
-                        .0
                     });
                 }
                 _ => None,
             };
 
             inst_opt.map(|inst| {
-                Itype::new_s(
-                    inst,
-                    rd(instruction_bits),
-                    rs1(instruction_bits),
-                    itype_immediate(instruction_bits),
+                nop_check(
+                    Itype::new_s(
+                        inst,
+                        rd,
+                        rs1(instruction_bits),
+                        itype_immediate(instruction_bits),
+                    )
+                    .0,
+                    rd,
                 )
-                .0
             })
         }
         0b_1100011 => {
@@ -195,13 +188,10 @@ pub fn factory<R: Register>(instruction_bits: u32, version: u32) -> Option<Instr
                 _ => None,
             };
             inst_opt.map(|inst| {
-                Rtype::new(
-                    inst,
-                    rd(instruction_bits),
-                    rs1(instruction_bits),
-                    rs2(instruction_bits),
+                nop_check(
+                    Rtype::new(inst, rd, rs1(instruction_bits), rs2(instruction_bits)).0,
+                    rd,
                 )
-                .0
             })
         }
         0b_0001111 => {
@@ -233,7 +223,7 @@ pub fn factory<R: Register>(instruction_bits: u32, version: u32) -> Option<Instr
                 0b_000 => Some(
                     Itype::new_s(
                         insts::OP_ADDIW,
-                        rd(instruction_bits),
+                        rd,
                         rs1(instruction_bits),
                         itype_immediate(instruction_bits),
                     )
@@ -250,7 +240,7 @@ pub fn factory<R: Register>(instruction_bits: u32, version: u32) -> Option<Instr
                     inst_opt.map(|inst| {
                         Itype::new_s(
                             inst,
-                            rd(instruction_bits),
+                            rd,
                             rs1(instruction_bits),
                             itype_immediate(instruction_bits) & 0x1F,
                         )
@@ -259,6 +249,7 @@ pub fn factory<R: Register>(instruction_bits: u32, version: u32) -> Option<Instr
                 }
                 _ => None,
             }
+            .map(|inst| nop_check(inst, rd))
         }
         0b_0111011 if rv64 => {
             let inst_opt = match (funct3(instruction_bits), funct7(instruction_bits)) {
@@ -269,15 +260,9 @@ pub fn factory<R: Register>(instruction_bits: u32, version: u32) -> Option<Instr
                 (0b_101, 0b_0100000) => Some(insts::OP_SRAW),
                 _ => None,
             };
-            inst_opt.map(|inst| {
-                Rtype::new(
-                    inst,
-                    rd(instruction_bits),
-                    rs1(instruction_bits),
-                    rs2(instruction_bits),
-                )
-                .0
-            })
+            inst_opt
+                .map(|inst| Rtype::new(inst, rd, rs1(instruction_bits), rs2(instruction_bits)).0)
+                .map(|inst| nop_check(inst, rd))
         }
         _ => None,
     })();
@@ -285,5 +270,5 @@ pub fn factory<R: Register>(instruction_bits: u32, version: u32) -> Option<Instr
 }
 
 pub fn nop() -> Instruction {
-    Itype::new_u(insts::OP_ADDI, 0, 0, 0).0
+    mark_nop(Itype::new_u(insts::OP_ADDI, 0, 0, 0).0)
 }

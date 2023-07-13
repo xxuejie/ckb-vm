@@ -1,4 +1,6 @@
 use super::super::machine::Machine;
+use super::super::registers::ZERO;
+use super::{mark_nop, Instruction};
 use crate::RISCV_GENERAL_REGISTER_NUMBER;
 use ckb_vm_definitions::instructions::{self as insts, InstructionOpcode};
 
@@ -157,5 +159,14 @@ pub fn lwu(version: u32) -> InstructionOpcode {
         insts::OP_LWU_VERSION1
     } else {
         insts::OP_LWU_VERSION0
+    }
+}
+
+#[inline(always)]
+pub fn nop_check(i: Instruction, rd: usize) -> Instruction {
+    if rd == ZERO {
+        mark_nop(i)
+    } else {
+        i
     }
 }

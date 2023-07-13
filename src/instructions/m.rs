@@ -1,6 +1,6 @@
 use ckb_vm_definitions::instructions as insts;
 
-use super::utils::{funct3, funct7, opcode, rd, rs1, rs2};
+use super::utils::{funct3, funct7, nop_check, opcode, rd, rs1, rs2};
 use super::{set_instruction_length_4, Instruction, Register, Rtype};
 
 pub fn factory<R: Register>(instruction_bits: u32, _: u32) -> Option<Instruction> {
@@ -34,15 +34,9 @@ pub fn factory<R: Register>(instruction_bits: u32, _: u32) -> Option<Instruction
         },
         _ => None,
     };
+    let rd = rd(instruction_bits);
     inst_opt
-        .map(|inst| {
-            Rtype::new(
-                inst,
-                rd(instruction_bits),
-                rs1(instruction_bits),
-                rs2(instruction_bits),
-            )
-            .0
-        })
+        .map(|inst| Rtype::new(inst, rd, rs1(instruction_bits), rs2(instruction_bits)).0)
         .map(set_instruction_length_4)
+        .map(|inst| nop_check(inst, rd))
 }

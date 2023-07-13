@@ -9,7 +9,7 @@ use crate::{
     error::Error,
     instructions::{
         blank_instruction, extract_opcode, instruction_length, is_basic_block_end_instruction,
-        is_slowpath_instruction,
+        is_nop, is_slowpath_instruction,
     },
     machine::{
         asm::{ckb_vm_asm_labels, AsmCoreMachine},
@@ -58,11 +58,13 @@ pub fn decode_fixed_trace<D: InstDecoder>(
         let end_instruction = is_basic_block_end_instruction(instruction);
         current_pc += u64::from(instruction_length(instruction));
         trace.cycles += machine.instruction_cycle_func()(instruction);
-        let opcode = extract_opcode(instruction);
-        // Here we are calculating the absolute address used in direct threading
-        // from label offsets.
-        trace.set_thread(i, instruction, label_from_fastpath_opcode(opcode));
-        i += 1;
+        if end_instruction || (!is_nop(instruction)) {
+            let opcode = extract_opcode(instruction);
+            // Here we are calculating the absolute address used in direct threading
+            // from label offsets.
+            trace.set_thread(i, instruction, label_from_fastpath_opcode(opcode));
+            i += 1;
+        }
         if end_instruction {
             break;
         }
@@ -241,14 +243,18 @@ impl DynamicTraceBuilder {
         self.start_address + self.length as u64
     }
 
-    pub fn push(&mut self, inst: Instruction, cycles: u64) {
+    pub fn push(&mut self, inst: Instruction, cycles: u64) -> bool {
         let opcode = extract_opcode(inst);
         // Here we are calculating the absolute address used in direct threading
         // from label offsets.
         let label = label_from_fastpath_opcode(opcode);
         self.length += u32::from(instruction_length(inst));
         self.cycles += cycles;
-        self.insts.push((inst, label));
+        let end_instruction = is_basic_block_end_instruction(inst);
+        if end_instruction || (!is_nop(inst)) {
+            self.insts.push((inst, label));
+        }
+        end_instruction
     }
 
     pub fn build(mut self) -> Box<DynamicTrace> {
@@ -309,10 +315,8 @@ impl<D: InstDecoder> MemoizedDynamicTraceDecoder<D> {
         let mut builder = DynamicTraceBuilder::new(pc);
         loop {
             let instruction = self.decode(machine.memory_mut(), builder.next_pc())?;
-            let end_instruction = is_basic_block_end_instruction(instruction);
             let cycles = machine.instruction_cycle_func()(instruction);
-            builder.push(instruction, cycles);
-            if end_instruction {
+            if builder.push(instruction, cycles) {
                 break;
             }
         }

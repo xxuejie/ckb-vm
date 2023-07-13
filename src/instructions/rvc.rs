@@ -107,6 +107,7 @@ pub fn factory<R: Register>(instruction_bits: u32, version: u32) -> Option<Instr
             if nzuimm != 0 {
                 // C.ADDI4SPN
                 Some(
+                    // Compact register won't be ZERO
                     Itype::new_u(
                         insts::OP_ADDI,
                         compact_register_number(instruction_bits, 2),
@@ -263,6 +264,7 @@ pub fn factory<R: Register>(instruction_bits: u32, version: u32) -> Option<Instr
             }
         }
         0b_100_00000000000_01 => {
+            // RD as a compact register can never be zero, no need to do nop check here.
             let rd = compact_register_number(instruction_bits, 7);
             match instruction_bits & 0b_1_11_000_11000_00 {
                 // C.SRLI64

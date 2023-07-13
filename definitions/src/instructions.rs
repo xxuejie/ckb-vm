@@ -18,8 +18,11 @@
 // +flg+ here means a combination of flags, Its format is as follows:
 //
 // +---+---+---+---+---+---+---+---+
-// | 7 | 6 | 5 | 4 | length >> 1   |
+// | 7 | 6 | 5 | n | length >> 1   |
 // +---+---+---+---+---+---+---+---+
+//
+// n is an indicator if current instruction is actually a nop instruction.
+// For examples, MUL with rd as zero register can be treated as a nop instruction.
 //
 // This way each op and register index are in full byte, accessing them
 // will be much faster than the original compact form. Hence we will have

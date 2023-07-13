@@ -440,6 +440,16 @@ pub fn instruction_length(i: Instruction) -> u8 {
     (((i >> 24) & 0x0f) << 1) as u8
 }
 
+#[inline(always)]
+pub fn mark_nop(i: u64) -> u64 {
+    i | 0x10000000
+}
+
+#[inline(always)]
+pub fn is_nop(i: u64) -> bool {
+    i & 0x10000000 != 0
+}
+
 #[cfg(test)]
 mod tests {
     use super::i::factory;
