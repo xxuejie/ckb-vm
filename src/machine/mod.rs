@@ -599,6 +599,10 @@ impl<Inner: SupportMachine> DefaultMachine<Inner> {
         self.pause.clone()
     }
 
+    pub fn set_pause(&mut self, pause: Pause) {
+        self.pause = pause;
+    }
+
     pub fn exit_code(&self) -> i8 {
         self.exit_code
     }
